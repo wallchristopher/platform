@@ -1,0 +1,6 @@
+argo-cd:
+  # -- Globally shared configuration
+  global:
+    # -- Node selector for all components
+    nodeSelector:
+      tier: internal

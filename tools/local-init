@@ -10,3 +10,13 @@ else
     kind create cluster --config kind-config.yaml --name $CLUSTER_NAME
     kubectl config use-context kind-$CLUSTER_NAME
 fi
+
+echo "Installing helm repositories"
+helm repo add argo https://argoproj.github.io/argo-helm
+
+if helm list --all-namespaces --all | grep -q "argo-cd"; then
+    echo "Argocd already installed. Skipping installation."
+else
+    echo "Installing argocd"
+    helm install argocd argo/argo-cd --namespace argocd --create-namespace
+fi

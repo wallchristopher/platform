@@ -1,0 +1,18 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # default set of linters
+  default: standard
+  # enable additional linters
+  enable:
+    - gosec
+    - revive
+    - funlen
+    - gocyclo
+
+  settings:
+    funlen:
+      ignore-comments: true

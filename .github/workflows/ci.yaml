@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # required to list changed charts
 
       - name: setup go
         uses: actions/setup-go@v6
@@ -27,8 +29,14 @@ jobs:
       - name: install yamllint
         run: pip install yamllint
 
+      - name: install chart testing
+        uses: helm/chart-testing-action@v2
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
 
       - name: yamllint
         run: yamllint . --strict --config-file=.yamllint.yaml
+
+      - name: ct lint
+        run: ct lint --config config.yaml

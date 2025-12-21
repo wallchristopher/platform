@@ -18,6 +18,14 @@ repos:
     hooks:
       - id: yamllint
         args: [--strict, --config-file=.yamllint.yaml]
+  - repo: https://github.com/norwoodj/helm-docs
+    rev: v1.14.2
+    hooks:
+      - id: helm-docs
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.30
+    hooks:
+      - id: shellcheck
   - repo: local
     hooks:
       - id: golangci-lint
@@ -26,4 +34,11 @@ repos:
         description: Run golangci-lint linter
         language: system
         types: [go]
+        pass_filenames: false
+      - id: ct-lint
+        name: ct-lint
+        entry: ct lint --config config.yaml --charts=platform/charts/argo
+        description: Run ct lint
+        language: system
+        types: [yaml]
         pass_filenames: false

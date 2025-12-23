@@ -28,4 +28,4 @@ else
 fi
 
 # Install the platform project and bootstrap ArgoCD
-kubectl apply -f "$PROJECT_ROOT/bootstrap/platform.yaml"
+kubectl apply -f "$PROJECT_ROOT/bootstrap/platform/*.yaml"

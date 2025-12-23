@@ -1,0 +1,7 @@
+chart-dirs:
+  - platform
+chart-repos:
+  - argo-cd=https://argoproj.github.io/argo-helm
+check-version-increment: false
+target-branch: main
+validate-maintainers: false

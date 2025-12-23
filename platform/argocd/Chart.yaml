@@ -1,5 +1,5 @@
 apiVersion: v2
-name: argo
+name: argo-cd
 version: 0.1.0
 description: Argo is a platform for deploying and managing applications on Kubernetes.
 type: application

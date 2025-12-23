@@ -12,20 +12,12 @@ spec:
   sourceRepos:
     - "*"
 
-  # -- Only permit applications to deploy to the any namespace in the cluster
+  # -- Deploy to any namespace in the cluster
   destinations:
     - namespace: "*"
-      server: https://kubernetes.default.svc
-      name: "*"
+      server: "*"
 
   # -- Deny all cluster-scoped resources from being created, except for Namespace
-  clusterResourceWhitelist: []
-
-  # -- Allow all namespaced-scoped resources to be created, except for ResourceQuota, LimitRange, NetworkPolicy
-  namespaceResourceBlacklist: []
-
-  # -- Deny all namespaced-scoped resources from being created, except for Deployment and StatefulSet
-  namespaceResourceWhitelist: []
-
-  # -- Roles
-  roles: []
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

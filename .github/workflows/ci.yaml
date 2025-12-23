@@ -39,4 +39,4 @@ jobs:
         run: yamllint . --strict --config-file=.yamllint.yaml
 
       - name: ct lint
-        run: ct lint --config config.yaml
+        run: ct lint --config ct.yaml

@@ -22,10 +22,5 @@ Installs ArgoCD
 |-----|------|---------|-------------|
 | argo-cd.global | object | `{"nodeSelector":{"tier":"internal"}}` | Globally shared configuration |
 | argo-cd.global.nodeSelector | object | `{"tier":"internal"}` | Node selector for all components |
-| argo-cd.spec.destination.server | string | `"https://kubernetes.default.svc"` |  |
-| argo-cd.spec.project | string | `"platform"` |  |
-| argo-cd.spec.source.path | string | `"platform/platform/argocd"` |  |
-| argo-cd.spec.source.repoURL | string | `"https://github.com/wallchristopher/platform"` |  |
-| argo-cd.spec.source.targetRevision | string | `"HEAD"` |  |
 
 <!-- markdownlint-enable MD034 -->

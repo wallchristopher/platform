@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
+# Get the absolute directory of the script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the project root (parent directory of tools/)
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 CLUSTER_NAME="platform"
 
 if kind get clusters | grep -q "$CLUSTER_NAME"; then
@@ -14,9 +19,13 @@ fi
 echo "Installing helm repositories"
 helm repo add argo https://argoproj.github.io/argo-helm
 
+# Install ArgoCD for CRDs that will bootstrap the cluster
 if helm list --all-namespaces --all | grep -q "argo-cd"; then
     echo "Argocd already installed. Skipping installation."
 else
     echo "Installing argocd"
     helm install argocd argo/argo-cd --namespace argocd --create-namespace
 fi
+
+# Install the platform project and bootstrap ArgoCD
+kubectl apply -f "$PROJECT_ROOT/bootstrap/platform.yaml"

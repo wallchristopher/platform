@@ -1,4 +1,0 @@
-chart-dirs:
-  - platform/charts/*/
-
-validate-maintainers: false

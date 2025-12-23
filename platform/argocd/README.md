@@ -1,4 +1,4 @@
-# argo
+# argo-cd
 
 Argo is a platform for deploying and managing applications on Kubernetes.
 

@@ -11,6 +11,10 @@ spec:
     repoURL: https://github.com/wallchristopher/platform.git
     targetRevision: HEAD
     path: platform/argocd
+    helm:
+      releaseName: argocd # This adopts's the existing argocd
+      valueFiles:
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

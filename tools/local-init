@@ -24,7 +24,7 @@ if helm list --all-namespaces --all | grep -q "argo-cd"; then
     echo "Argocd already installed. Skipping installation."
 else
     echo "Installing argocd"
-    helm install argocd argo/argo-cd --namespace argocd --create-namespace
+    helm install argocd "$PROJECT_ROOT/platform/argocd" --namespace argocd --create-namespace --wait
 fi
 
 # Install the platform project and bootstrap ArgoCD

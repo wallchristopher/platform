@@ -1,0 +1,26 @@
+# -- Allows advertising of LoadBalancer IPs provided by pools via L2.
+l2Advertisement:
+  # -- The name of the L2 advertisement.
+  name: metallb-l2-advertisement
+
+  # -- The list of IpAddressPools to advertise via this advetisement.
+  # Selected by name.
+  ipAddressPools:
+    - public
+
+ipAddressPool:
+  # -- The name of the IP address pool.
+  name: public
+
+  # -- A list of IP address ranges over which MetalLB has authority to serve.
+  addresses:
+    - "172.19.0.100-172.19.0.150"
+
+# -- Metallb configuration.
+metallb:
+  # -- Controller configuration.
+  controller:
+    # -- Node selector for the controller.
+    nodeSelector:
+      # -- Deploy to the nodes with the tier label set to internal
+      tier: internal

@@ -1,0 +1,11 @@
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: {{ .Values.l2Advertisement.name }}
+  labels:
+    {{- include "metallb.labels" . | nindent 4 }}
+spec:
+  ipAddressPools:
+    {{- range $pool := .Values.l2Advertisement.ipAddressPools }}
+    - {{ $pool }}
+    {{ end }}

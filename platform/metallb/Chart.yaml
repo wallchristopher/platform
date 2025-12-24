@@ -1,0 +1,10 @@
+apiVersion: v2
+name: metallb
+version: 0.1.0
+description: Metallb is a load balancer for Kubernetes. Specifically used for local development or bare metal clusters.
+type: application
+
+dependencies:
+  - name: metallb
+    version: 0.*
+    repository: https://metallb.github.io/metallb

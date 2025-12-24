@@ -1,0 +1,14 @@
+apiVersion: v2
+name: gateway
+version: 0.1.0
+description: Gateway is a platform for deploying and managing applications on Kubernetes.
+type: application
+
+dependencies:
+  - name: gateway-crds-helm
+    version: 1.*
+    repository: oci://docker.io/envoyproxy
+  - name: gateway-helm
+    alias: controller
+    version: 1.*
+    repository: oci://docker.io/envoyproxy

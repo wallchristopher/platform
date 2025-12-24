@@ -1,0 +1,49 @@
+controller:
+  # -- deployment configuration
+  deployment:
+    # -- node selector for the deployment
+    nodeSelector:
+      # -- Deploy to the nodes with the tier label set to external
+      tier: external
+
+  # -- Controller Configuration
+  config:
+    # -- EnvoyGateway configuration.
+    # Visit https://gateway.envoyproxy.io/docs/api/extension_types/#envoygateway to view all options.
+    envoyGateway:
+      gateway:
+        # -- Name of the controller to use. This is currently the default but is referenced by our gatewayclass template.
+        controllerName: gateway.envoyproxy.io/gatewayclass-controller
+
+public:
+  # -- gateway class configuration
+  gatewayClass:
+    # -- gateway class name
+    name: public
+    # -- gateway class description
+    description: Public gateway class for the platform
+
+  # -- gateway configuration
+  gateway:
+    # -- gateway name
+    name: envoy-gateway
+
+    # -- listeners configuration
+    listeners:
+      # TODO: Add TLS configuration
+      # https:
+      #   protocol: HTTPS
+      #   port: 443
+      #   tls: REQUIRED
+      #   allowedRoutes:
+      #     kind: HTTPRoute
+      #     namespace: All
+      http:
+        protocol: HTTP
+        port: 80
+        allowedRoutes:
+          kinds:
+            - group: gateway.networking.k8s.io
+              kind: HTTPRoute
+          namespaces:
+            from: All

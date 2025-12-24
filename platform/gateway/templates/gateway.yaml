@@ -1,0 +1,28 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.public.gateway.name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ .Values.public.gatewayClass.name }}
+  listeners:
+  {{- range $key, $listener := .Values.public.gateway.listeners }}
+  - name: {{ $key }}
+    protocol: {{ $listener.protocol }}
+    port: {{ $listener.port }}
+    {{- if $listener.tls }}
+    tls: {{ $listener.tls }}
+    {{- end }}
+    allowedRoutes:
+      kinds:
+        {{- range $kind := $listener.allowedRoutes.kinds }}
+        - group: {{ $kind.group }}
+          kind: {{ $kind.kind }}
+        {{- end }}
+      namespaces:
+        from: {{ $listener.allowedRoutes.namespaces.from }}
+        {{- if and (eq $listener.allowedRoutes.namespaces.from "Selector") $listener.allowedRoutes.namespaces.selector }}
+        selector: {{ $listener.allowedRoutes.namespaces.selector }}
+        {{- end }}
+  {{- end }}

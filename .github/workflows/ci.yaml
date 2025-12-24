@@ -32,11 +32,17 @@ jobs:
       - name: install chart testing
         uses: helm/chart-testing-action@v2
 
-      - name: golangci-lint
+      - name: install kubeconform
+        run: helm plugin install https://github.com/jtyr/kubeconform-helm
+
+      - name: install helm-docs
+        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
+
+      - name: install golangci-lint
         uses: golangci/golangci-lint-action@v9
 
-      - name: yamllint
-        run: yamllint . --strict --config-file=.yamllint.yaml
+      - name: install pre-commit
+        uses: pre-commit/action@v3.0.1
 
-      - name: ct lint
-        run: ct lint --config ct.yaml
+      - name: lint
+        run: make lint

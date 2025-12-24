@@ -9,7 +9,7 @@ spec:
   project: platform
   source:
     repoURL: https://github.com/wallchristopher/platform.git
-    targetRevision: init-envoy
+    targetRevision: HEAD
     path: platform/gateway
     helm:
       releaseName: envoy-gateway

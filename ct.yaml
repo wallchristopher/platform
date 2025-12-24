@@ -2,6 +2,7 @@ chart-dirs:
   - platform
 chart-repos:
   - argo-cd=https://argoproj.github.io/argo-helm
+  - metallb=https://metallb.github.io/metallb
 check-version-increment: false
 target-branch: main
 validate-maintainers: false

@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: https://github.com/wallchristopher/platform.git
-    targetRevision: init-envoy
+    targetRevision: HEAD
     path: bootstrap/platform
   destination:
     server: https://kubernetes.default.svc

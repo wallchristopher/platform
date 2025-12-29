@@ -6,7 +6,6 @@ repos:
       - id: check-ast
       - id: check-case-conflict
       - id: check-merge-conflict
-      - id: check-yaml
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: name-tests-test
@@ -26,6 +25,19 @@ repos:
     rev: v0.1.30
     hooks:
       - id: shellcheck
+  - repo: https://github.com/jtyr/kubeconform-helm
+    rev: v0.2.0
+    hooks:
+      - id: kubeconform-helm
+        args:
+          - --charts-path=platform
+          - --strict
+          - --summary
+          - --verbose
+          - --schema-location=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+          - --schema-location=default
+          - --ignore-missing-schemas
+        files: ^(platform)/
   - repo: local
     hooks:
       - id: golangci-lint

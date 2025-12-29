@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: platform
+  name: metallb
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,17 +10,24 @@ spec:
   source:
     repoURL: https://github.com/wallchristopher/platform.git
     targetRevision: HEAD
-    path: platform/argocd
+    path: platform/metallb
     helm:
-      releaseName: argocd # This adopts's the existing argocd
+      releaseName: metallb
       valueFiles:
         - values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: argocd
+    namespace: metallb
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+    managedNamespaceMetadata:
+      # The speaker pod requires elevated permission in order to perform its network functionalities.
+      # More info: https://metallb.io/installation/index.html#installation-with-helm
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+        pod-security.kubernetes.io/audit: privileged
+        pod-security.kubernetes.io/warn: privileged
     syncOptions:
       - CreateNamespace=true

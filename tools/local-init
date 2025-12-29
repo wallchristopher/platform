@@ -27,5 +27,5 @@ else
     helm install argocd "$PROJECT_ROOT/platform/argocd" --namespace argocd --create-namespace --wait
 fi
 
-# Install the platform project and bootstrap ArgoCD
-kubectl apply -f "$PROJECT_ROOT/bootstrap/platform/*.yaml"
+# Install the platform project and bootstrap the platform
+kubectl apply -f "$PROJECT_ROOT/bootstrap/platform/root.yaml"

@@ -1,0 +1,37 @@
+# gateway
+
+Gateway is a platform for deploying and managing applications on Kubernetes.
+
+![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square)
+
+## Description
+
+Installs Envoy Gateway
+
+<!-- markdownlint-disable MD034 -->
+
+## Requirements
+
+| Repository | Name | Version |
+|------------|------|---------|
+| oci://docker.io/envoyproxy | gateway-crds-helm | 1.* |
+| oci://docker.io/envoyproxy | controller(gateway-helm) | 1.* |
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| controller.config | object | `{"envoyGateway":{"gateway":{"controllerName":"gateway.envoyproxy.io/gatewayclass-controller"}}}` | Controller Configuration |
+| controller.config.envoyGateway | object | `{"gateway":{"controllerName":"gateway.envoyproxy.io/gatewayclass-controller"}}` | EnvoyGateway configuration. Visit https://gateway.envoyproxy.io/docs/api/extension_types/#envoygateway to view all options. |
+| controller.config.envoyGateway.gateway.controllerName | string | `"gateway.envoyproxy.io/gatewayclass-controller"` | Name of the controller to use. This is currently the default but is referenced by our gatewayclass template. |
+| controller.deployment | object | `{"nodeSelector":{"tier":"external"}}` | deployment configuration |
+| controller.deployment.nodeSelector | object | `{"tier":"external"}` | node selector for the deployment |
+| controller.deployment.nodeSelector.tier | string | `"external"` | Deploy to the nodes with the tier label set to external |
+| public.gateway | object | `{"listeners":{"http":{"allowedRoutes":{"kinds":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute"}],"namespaces":{"from":"All"}},"port":80,"protocol":"HTTP"}},"name":"envoy-gateway"}` | gateway configuration |
+| public.gateway.listeners | object | `{"http":{"allowedRoutes":{"kinds":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute"}],"namespaces":{"from":"All"}},"port":80,"protocol":"HTTP"}}` | listeners configuration |
+| public.gateway.name | string | `"envoy-gateway"` | gateway name |
+| public.gatewayClass | object | `{"description":"Public gateway class for the platform","name":"public"}` | gateway class configuration |
+| public.gatewayClass.description | string | `"Public gateway class for the platform"` | gateway class description |
+| public.gatewayClass.name | string | `"public"` | gateway class name |
+
+<!-- markdownlint-enable MD034 -->

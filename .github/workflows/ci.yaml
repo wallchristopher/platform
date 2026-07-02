@@ -24,25 +24,35 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
+          go-version: '1.26'
 
-      - name: install yamllint
-        run: pip install yamllint
+      - name: setup helm
+        uses: azure/setup-helm@v5
+
+      - name: install pre-commit
+        run: sudo apt update && sudo apt install pre-commit -y
 
       - name: install chart testing
         uses: helm/chart-testing-action@v2
 
-      - name: install kubeconform
-        run: helm plugin install https://github.com/jtyr/kubeconform-helm
+      - name: install just
+        uses: taiki-e/install-action@just
 
-      - name: install helm-docs
-        run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@latest
+      - name: install kubeconform
+        run: |
+          go install github.com/yannh/kubeconform/cmd/kubeconform@v0.8.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: install golangci-lint
         uses: golangci/golangci-lint-action@v9
+        with:
+          install-only: true # to prevent running golangci-lint twice
 
-      - name: install pre-commit
-        uses: pre-commit/action@v3.0.1
+      - name: install shellcheck
+        uses: taiki-e/install-action@shellcheck
 
       - name: lint
+        env:
+          LINT_FROM_REF: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }} # fallback of origin/main used for testing
+          LINT_TO_REF: ${{ github.sha }}
         run: just lint

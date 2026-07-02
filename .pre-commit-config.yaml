@@ -29,6 +29,16 @@ repos:
     rev: v1.14.2
     hooks:
       - id: helm-docs-built
+  - repo: local
+    hooks:
+      - id: ct-lint
+        name: ct-lint
+        entry: ct lint
+        description: Run chart-testing lint
+        language: system
+        types: [yaml]
+        files: ^(platform/|ct\.yaml$)
+        pass_filenames: false
   - repo: https://github.com/jtyr/kubeconform-helm
     rev: v0.3.0
     hooks:
@@ -44,14 +54,6 @@ repos:
         files: ^(platform)/
   - repo: local
     hooks:
-      - id: ct-lint
-        name: ct-lint
-        entry: ct lint
-        description: Run chart-testing lint
-        language: system
-        types: [yaml]
-        files: ^(platform/|ct\.yaml$)
-        pass_filenames: false
       - id: golangci-lint
         name: golangci-lint
         entry: golangci-lint run

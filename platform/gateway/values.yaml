@@ -1,11 +1,4 @@
 controller:
-  # -- deployment configuration
-  deployment:
-    # -- node selector for the deployment
-    nodeSelector:
-      # -- Deploy to the nodes with the tier label set to external
-      tier: external
-
   # -- Controller Configuration
   config:
     # -- EnvoyGateway configuration.

@@ -24,9 +24,6 @@ Installs Envoy Gateway
 | controller.config | object | `{"envoyGateway":{"gateway":{"controllerName":"gateway.envoyproxy.io/gatewayclass-controller"}}}` | Controller Configuration |
 | controller.config.envoyGateway | object | `{"gateway":{"controllerName":"gateway.envoyproxy.io/gatewayclass-controller"}}` | EnvoyGateway configuration. Visit https://gateway.envoyproxy.io/docs/api/extension_types/#envoygateway to view all options. |
 | controller.config.envoyGateway.gateway.controllerName | string | `"gateway.envoyproxy.io/gatewayclass-controller"` | Name of the controller to use. This is currently the default but is referenced by our gatewayclass template. |
-| controller.deployment | object | `{"nodeSelector":{"tier":"external"}}` | deployment configuration |
-| controller.deployment.nodeSelector | object | `{"tier":"external"}` | node selector for the deployment |
-| controller.deployment.nodeSelector.tier | string | `"external"` | Deploy to the nodes with the tier label set to external |
 | public.gateway | object | `{"listeners":{"http":{"allowedRoutes":{"kinds":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute"}],"namespaces":{"from":"All"}},"port":80,"protocol":"HTTP"}},"name":"envoy-gateway"}` | gateway configuration |
 | public.gateway.listeners | object | `{"http":{"allowedRoutes":{"kinds":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute"}],"namespaces":{"from":"All"}},"port":80,"protocol":"HTTP"}}` | listeners configuration |
 | public.gateway.name | string | `"envoy-gateway"` | gateway name |

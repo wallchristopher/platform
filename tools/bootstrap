@@ -1,0 +1,256 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+readonly SCRIPT_DIR PROJECT_ROOT
+
+readonly ARGOCD_CHART_DIR="${PROJECT_ROOT}/platform/argocd"
+readonly LOCAL_DIR="${PROJECT_ROOT}/.local"
+readonly KUBECONFIG_PATH="${LOCAL_DIR}/kubeconfig"
+readonly HELM_ROOT="${LOCAL_DIR}/helm"
+readonly HELM_CACHE_DIR="${HELM_ROOT}/cache"
+readonly HELM_CONFIG_DIR="${HELM_ROOT}/config"
+readonly HELM_DATA_DIR="${HELM_ROOT}/data"
+readonly TERRAFORM_DIR="${PROJECT_ROOT}/terraform"
+
+readonly -a APPLICATIONS=(platform argocd gateway)
+readonly APPLICATION_WAIT_ATTEMPTS=120
+readonly APPLICATION_WAIT_INTERVAL_SECONDS=5
+readonly AWS_FLOCI_ACCOUNT_ID="000000000000"
+readonly AWS_PROFILE_NAME="floci"
+readonly AWS_REGION_NAME="us-east-1"
+readonly CLUSTER_NAME="platform"
+readonly CONTEXT_NAME="floci-platform"
+readonly FLOCI_ENDPOINT="http://127.0.0.1:4567"
+readonly FLOCI_WAIT_ATTEMPTS=60
+readonly FLOCI_WAIT_INTERVAL_SECONDS=2
+readonly STATE_BUCKET="platform-floci-terraform-state"
+
+usage() {
+    printf '%s\n' \
+        'Usage: tools/bootstrap [all|infra|gitops|recreate|help|--help]' \
+        '' \
+        'Modes:' \
+        '  all        Create or update infrastructure, then install and verify GitOps.' \
+        '  infra      Create or update infrastructure only.' \
+        '  gitops     Require a healthy existing cluster, then install and verify GitOps.' \
+        '  recreate   Remove the exact disposable environment, then run all phases.' \
+        '  help       Show this help without changing the environment.' \
+        '' \
+        'With no argument, tools/bootstrap behaves like "all".'
+}
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+usage_error() {
+    printf 'error: %s\n' "$*" >&2
+    usage >&2
+    exit 2
+}
+
+aws_config() {
+    aws \
+        --profile "${AWS_PROFILE_NAME}" \
+        --region "${AWS_REGION_NAME}" \
+        --endpoint-url "${FLOCI_ENDPOINT}" \
+        "$@"
+}
+
+kubectl_config() {
+    AWS_PROFILE="${AWS_PROFILE_NAME}" \
+    AWS_REGION="${AWS_REGION_NAME}" \
+    AWS_ENDPOINT_URL="${FLOCI_ENDPOINT}" \
+        kubectl \
+        --kubeconfig "${KUBECONFIG_PATH}" \
+        --context "${CONTEXT_NAME}" \
+        "$@"
+}
+
+terraform_config() {
+    terraform -chdir="${TERRAFORM_DIR}" "$@"
+}
+
+helm_config() {
+    HELM_CACHE_HOME="${HELM_CACHE_DIR}" \
+    HELM_CONFIG_HOME="${HELM_CONFIG_DIR}" \
+    HELM_DATA_HOME="${HELM_DATA_DIR}" \
+    AWS_PROFILE="${AWS_PROFILE_NAME}" \
+    AWS_REGION="${AWS_REGION_NAME}" \
+    AWS_ENDPOINT_URL="${FLOCI_ENDPOINT}" \
+        helm "$@"
+}
+
+compose_floci() {
+    docker compose \
+        --project-directory "${PROJECT_ROOT}" \
+        --file "${PROJECT_ROOT}/compose.yaml" \
+        "$@"
+}
+
+wait_for_floci() {
+    local attempt
+
+    for ((attempt = 1; attempt <= FLOCI_WAIT_ATTEMPTS; attempt++)); do
+        if curl --fail --silent --show-error \
+            "${FLOCI_ENDPOINT}/_localstack/health" >/dev/null; then
+            return
+        fi
+        sleep "${FLOCI_WAIT_INTERVAL_SECONDS}"
+    done
+
+    die "Floci did not become healthy within $((FLOCI_WAIT_ATTEMPTS * FLOCI_WAIT_INTERVAL_SECONDS)) seconds"
+}
+
+verify_aws_account() {
+    local account_id
+
+    account_id="$(aws_config sts get-caller-identity --query Account --output text)"
+    [[ "${account_id}" == "${AWS_FLOCI_ACCOUNT_ID}" ]] || \
+        die "expected Floci AWS account ${AWS_FLOCI_ACCOUNT_ID}, received ${account_id}"
+}
+
+verify_healthy_cluster() {
+    local cluster_status
+    local node_count
+
+    [[ -s "${KUBECONFIG_PATH}" ]] || \
+        die "GitOps requires the current isolated kubeconfig at ${KUBECONFIG_PATH}; run infra first"
+
+    curl --fail --silent --show-error \
+        "${FLOCI_ENDPOINT}/_localstack/health" >/dev/null || \
+        die "GitOps requires a healthy existing Floci API at ${FLOCI_ENDPOINT}"
+    verify_aws_account
+
+    cluster_status="$(aws_config eks describe-cluster \
+        --name "${CLUSTER_NAME}" \
+        --query cluster.status \
+        --output text)"
+    [[ "${cluster_status}" == "ACTIVE" ]] || \
+        die "expected EKS cluster ACTIVE, received ${cluster_status}"
+
+    kubectl_config wait --for=condition=Ready nodes --all --timeout=5m
+    node_count="$(kubectl_config get nodes --no-headers | wc -l)"
+    [[ "${node_count}" -eq 1 ]] || \
+        die "expected exactly one Kubernetes node, received ${node_count}"
+}
+
+infrastructure_phase() {
+    compose_floci up --detach floci
+    wait_for_floci
+    verify_aws_account
+
+    if ! aws_config s3api head-bucket --bucket "${STATE_BUCKET}" >/dev/null 2>&1; then
+        aws_config s3api create-bucket --bucket "${STATE_BUCKET}" >/dev/null
+    fi
+
+    terraform_config init \
+        -input=false \
+        -reconfigure \
+        -backend-config=backends/local.hcl
+    terraform_config fmt -check -recursive
+    terraform_config validate
+    terraform_config apply \
+        -input=false \
+        -auto-approve \
+        -var-file=tfvars/local.tfvars
+
+    mkdir -p "${LOCAL_DIR}"
+    aws_config eks update-kubeconfig \
+        --name "${CLUSTER_NAME}" \
+        --alias "${CONTEXT_NAME}" \
+        --kubeconfig "${KUBECONFIG_PATH}"
+    chmod 600 "${KUBECONFIG_PATH}"
+    verify_healthy_cluster
+}
+
+wait_for_application() {
+    local application="$1"
+    local application_status
+    local attempt
+    local health
+    local revision
+    local sync
+
+    for ((attempt = 1; attempt <= APPLICATION_WAIT_ATTEMPTS; attempt++)); do
+        application_status="$(kubectl_config --namespace argocd get application "${application}" \
+            --output jsonpath='{.status.sync.status}{"|"}{.status.health.status}{"|"}{.status.sync.revision}' \
+            2>/dev/null || true)"
+        IFS='|' read -r sync health revision <<< "${application_status}"
+
+        if [[ "${sync}" == "Synced" && "${health}" == "Healthy" && -n "${revision}" ]]; then
+            printf '%s: sync=%s health=%s revision=%s\n' \
+                "${application}" "${sync}" "${health}" "${revision}"
+            return
+        fi
+
+        sleep "${APPLICATION_WAIT_INTERVAL_SECONDS}"
+    done
+
+    kubectl_config --namespace argocd get application "${application}" \
+        --output yaml >&2 || true
+    die "Argo application ${application} did not become Synced and Healthy within $((APPLICATION_WAIT_ATTEMPTS * APPLICATION_WAIT_INTERVAL_SECONDS / 60)) minutes"
+}
+
+gitops_phase() {
+    local application
+
+    verify_healthy_cluster
+    mkdir -p "${HELM_CACHE_DIR}" "${HELM_CONFIG_DIR}" "${HELM_DATA_DIR}"
+
+    helm_config repo add argo https://argoproj.github.io/argo-helm --force-update
+    helm_config repo update
+    helm_config dependency build "${ARGOCD_CHART_DIR}"
+    helm_config upgrade --install argocd "${ARGOCD_CHART_DIR}" \
+        --namespace argocd \
+        --create-namespace \
+        --wait \
+        --timeout 10m \
+        --kubeconfig "${KUBECONFIG_PATH}" \
+        --kube-context "${CONTEXT_NAME}"
+
+    kubectl_config apply --filename "${PROJECT_ROOT}/bootstrap/platform/root.yaml"
+    for application in "${APPLICATIONS[@]}"; do
+        wait_for_application "${application}"
+    done
+}
+
+recreate_environment() {
+    compose_floci down --volumes
+}
+
+main() {
+    local mode
+
+    (( $# <= 1 )) || usage_error "expected at most one mode argument"
+    mode="${1:-all}"
+
+    case "${mode}" in
+        help|--help)
+            usage
+            ;;
+        all)
+            infrastructure_phase
+            gitops_phase
+            ;;
+        infra)
+            infrastructure_phase
+            ;;
+        gitops)
+            gitops_phase
+            ;;
+        recreate)
+            recreate_environment
+            infrastructure_phase
+            gitops_phase
+            ;;
+        *)
+            usage_error "unknown mode: ${mode}"
+            ;;
+    esac
+}
+
+main "$@"

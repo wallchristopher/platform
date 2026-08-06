@@ -1,4 +1,3 @@
-CLUSTER_NAME := env("CLUSTER_NAME", "platform")
 LINT_FROM_REF := env("LINT_FROM_REF", "origin/main")
 LINT_TO_REF := env("LINT_TO_REF", "HEAD")
 
@@ -11,8 +10,7 @@ lint-all:
   pre-commit run --all-files
 
 local-bootstrap:
-  CLUSTER_NAME="{{CLUSTER_NAME}}" tools/local-init
+  tools/bootstrap
 
 local-reset:
-  if kind get clusters | grep -qx "{{CLUSTER_NAME}}"; then kind delete cluster --name "{{CLUSTER_NAME}}"; fi
-  CLUSTER_NAME="{{CLUSTER_NAME}}" tools/local-init
+  tools/bootstrap recreate

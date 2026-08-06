@@ -1,0 +1,14 @@
+argo-cd:
+  configs:
+    params:
+      server.insecure: true
+
+  server:
+    httproute:
+      enabled: true
+      parentRefs:
+        - name: envoy-gateway
+          namespace: envoy-gateway-system
+          sectionName: http
+      hostnames:
+        - argocd.local

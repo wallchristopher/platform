@@ -15,6 +15,7 @@ spec:
       releaseName: argocd # This adopts's the existing argocd
       valueFiles:
         - values.yaml
+        - values/local.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

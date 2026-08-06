@@ -16,11 +16,4 @@ Installs ArgoCD
 |------------|------|---------|
 | https://argoproj.github.io/argo-helm | argo-cd | 9.x |
 
-## Values
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| argo-cd.global | object | `{"nodeSelector":{"tier":"internal"}}` | Globally shared configuration |
-| argo-cd.global.nodeSelector | object | `{"tier":"internal"}` | Node selector for all components |
-
 <!-- markdownlint-enable MD034 -->

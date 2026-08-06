@@ -1,0 +1,12 @@
+allowed_account_ids         = ["000000000000"]
+availability_zones          = ["us-east-1a", "us-east-1b"]
+aws_endpoint_url            = "http://127.0.0.1:4567"
+aws_profile                 = "floci"
+aws_region                  = "us-east-1"
+eks_enable_irsa             = false # Floci does not expose the EKS OIDC identity required by the module's IRSA provider.
+eks_endpoint_private_access = false
+eks_endpoint_public_access  = true
+environment                 = "local"
+skip_metadata_api_check     = true # Floci has no EC2 IMDS endpoint, so metadata authentication and probing must be disabled.
+vpc_cidr_block              = "10.0.0.0/16"
+vpc_private_subnet_cidrs    = ["10.0.1.0/24", "10.0.2.0/24"]

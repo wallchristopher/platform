@@ -1,0 +1,23 @@
+name: platform-floci
+
+services:
+  floci:
+    image: floci/floci:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4567:4566"
+    environment:
+      FLOCI_STORAGE_MODE: memory
+      FLOCI_SERVICES_EKS_DOCKER_NETWORK: platform-floci
+      FLOCI_SERVICES_EKS_KEEP_RUNNING_ON_SHUTDOWN: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - floci
+
+networks:
+  floci:
+    name: platform-floci
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"

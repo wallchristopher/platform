@@ -13,7 +13,7 @@ spec:
     path: platform/gateway
     helm:
       releaseName: envoy-gateway
-      skipCRDs: true
+      skipCrds: true
       valueFiles:
         - values.yaml
   destination:

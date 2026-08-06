@@ -197,20 +197,26 @@ wait_for_application() {
 
 gitops_phase() {
     local application
+    local argocd_server
 
     verify_healthy_cluster
-    mkdir -p "${HELM_CACHE_DIR}" "${HELM_CONFIG_DIR}" "${HELM_DATA_DIR}"
+    argocd_server="$(kubectl_config --namespace argocd get deployment argocd-server \
+        --ignore-not-found \
+        --output name)"
+    if [[ -z "${argocd_server}" ]]; then
+        mkdir -p "${HELM_CACHE_DIR}" "${HELM_CONFIG_DIR}" "${HELM_DATA_DIR}"
 
-    helm_config repo add argo https://argoproj.github.io/argo-helm --force-update
-    helm_config repo update
-    helm_config dependency build "${ARGOCD_CHART_DIR}"
-    helm_config upgrade --install argocd "${ARGOCD_CHART_DIR}" \
-        --namespace argocd \
-        --create-namespace \
-        --wait \
-        --timeout 10m \
-        --kubeconfig "${KUBECONFIG_PATH}" \
-        --kube-context "${CONTEXT_NAME}"
+        helm_config repo add argo https://argoproj.github.io/argo-helm --force-update
+        helm_config repo update
+        helm_config dependency build "${ARGOCD_CHART_DIR}"
+        helm_config upgrade --install argocd "${ARGOCD_CHART_DIR}" \
+            --namespace argocd \
+            --create-namespace \
+            --wait \
+            --timeout 10m \
+            --kubeconfig "${KUBECONFIG_PATH}" \
+            --kube-context "${CONTEXT_NAME}"
+    fi
 
     kubectl_config apply --filename "${PROJECT_ROOT}/bootstrap/platform/root.yaml"
     for application in "${APPLICATIONS[@]}"; do

@@ -12,7 +12,7 @@ spec:
     targetRevision: HEAD
     path: platform/argocd
     helm:
-      releaseName: argocd # This adopts's the existing argocd
+      releaseName: argocd # Adopts the existing release
       valueFiles:
         - values.yaml
         - values/local.yaml
@@ -25,3 +25,5 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      # Required when Argo CD manages itself.
+      - ServerSideApply=true

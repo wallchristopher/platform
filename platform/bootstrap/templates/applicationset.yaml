@@ -1,0 +1,60 @@
+{{- $applicationSet := .Values.applicationSet -}}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ $applicationSet.name | quote }}
+  namespace: {{ include "bootstrap.namespace" . | quote }}
+  labels:
+    {{- include "bootstrap.labels" . | nindent 4 }}
+spec:
+  generators:
+    {{- range $name, $child := $applicationSet.applications }}
+    {{- $applicationName := required "application name is required" $name }}
+    - list:
+        elements:
+          - application: {{ $applicationName | quote }}
+        template:
+          metadata:
+            name: {{ $applicationName | quote }}
+            namespace: {{ include "bootstrap.namespace" $ | quote }}
+            labels:
+              {{- include "bootstrap.labels" $ | nindent 14 }}
+              {{ $applicationSet.stageLabelKey | quote }}: {{ required "application stage is required" $child.stage | quote }}
+            finalizers:
+              {{- toYaml $child.finalizers | nindent 14 }}
+          spec:
+            project: {{ $child.project | quote }}
+            source:
+              repoURL: {{ $child.source.repoURL | quote }}
+              targetRevision: {{ required "resolvedRevision is required" $.Values.resolvedRevision | quote }}
+              path: {{ $child.source.path | quote }}
+              helm:
+                {{- toYaml $child.source.helm | nindent 16 }}
+            destination:
+              server: {{ $child.destination.server | quote }}
+              namespace: {{ $child.destination.namespace | quote }}
+            syncPolicy:
+              {{- toYaml $child.syncPolicy | nindent 14 }}
+    {{- end }}
+  strategy:
+    type: RollingSync
+    rollingSync:
+      steps:
+        {{- range $stage := $applicationSet.stages }}
+        {{- $stageName := required "applicationSet stage is required" $stage }}
+        - matchExpressions:
+            - key: {{ $applicationSet.stageLabelKey | quote }}
+              operator: In
+              values:
+                - {{ $stageName | quote }}
+        {{- end }}
+  # Required by the ApplicationSet schema; each generator supplies its complete Application.
+  template:
+    metadata: {}
+    spec:
+      project: {{ $applicationSet.template.project | quote }}
+      destination:
+        server: {{ $applicationSet.template.destination.server | quote }}
+        namespace: {{ $applicationSet.template.destination.namespace | quote }}
+  syncPolicy:
+    {{- toYaml $applicationSet.syncPolicy | nindent 4 }}

@@ -16,4 +16,10 @@ Installs ArgoCD
 |------------|------|---------|
 | https://argoproj.github.io/argo-helm | argo-cd | 9.x |
 
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| argo-cd.configs.params."applicationsetcontroller.enable.progressive.syncs" | string | `"true"` | applicationsetcontroller.enable.progressive.syncs enables ordered ApplicationSet RollingSync reconciliation. |
+
 <!-- markdownlint-enable MD034 -->

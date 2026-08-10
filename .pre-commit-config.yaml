@@ -39,20 +39,6 @@ repos:
         types: [yaml]
         files: ^(platform/|ct\.yaml$)
         pass_filenames: false
-      - id: kubeconform-bootstrap
-        name: kubeconform-bootstrap
-        entry: kubeconform
-        description: Validate bootstrap Kubernetes manifests
-        language: system
-        types: [yaml]
-        files: ^bootstrap/platform/.*\.ya?ml$
-        args:
-          - -strict
-          - -summary
-          - -verbose
-          - -schema-location=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
-          - -schema-location=default
-          - -ignore-missing-schemas
   - repo: https://github.com/jtyr/kubeconform-helm
     rev: v0.3.0
     hooks:

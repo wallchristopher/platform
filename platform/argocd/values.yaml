@@ -1,0 +1,5 @@
+argo-cd:
+  configs:
+    params:
+      # -- applicationsetcontroller.enable.progressive.syncs enables ordered ApplicationSet RollingSync reconciliation.
+      applicationsetcontroller.enable.progressive.syncs: "true"

@@ -1,0 +1,241 @@
+# -- sourceRevision preserves the symbolic Git revision followed by the root Application.
+sourceRevision: "HEAD"
+
+# -- resolvedRevision pins generated Applications to the immutable root commit.
+resolvedRevision: "HEAD"
+
+# -- application configures the self-managed root Argo CD Application.
+application:
+  # -- name is the root Application name.
+  name: "platform"
+
+  # -- project is the AppProject used by the root Application.
+  project: "default"
+
+  # -- source configures the root Git and Helm source.
+  source:
+    # -- repoURL is the Git repository reconciled by the root Application.
+    repoURL: "https://github.com/wallchristopher/platform.git"
+
+    # -- path is the chart path reconciled by the root Application.
+    path: "platform/bootstrap"
+
+    # -- helm configures parameters passed during root self-management.
+    helm:
+      # -- parameters preserve the symbolic revision and resolved commit across self-management.
+      parameters:
+        -  # -- name identifies the symbolic-revision Helm parameter.
+          name: "sourceRevision"
+          # -- value reads the configured symbolic revision from Argo's build environment.
+          value: "$ARGOCD_APP_SOURCE_TARGET_REVISION"
+        -  # -- name identifies the resolved-revision Helm parameter.
+          name: "resolvedRevision"
+          # -- value reads the immutable commit from Argo's build environment.
+          value: "$ARGOCD_APP_REVISION"
+
+  # -- destination configures the root deployment target.
+  destination:
+    # -- server is the root destination cluster API.
+    server: "https://kubernetes.default.svc"
+
+    # -- namespace is the root destination namespace.
+    namespace: "argocd"
+
+  # -- syncPolicy configures automated root reconciliation.
+  syncPolicy:
+    # -- automated enables automated root reconciliation.
+    automated:
+      # -- prune removes root-owned resources deleted from Git.
+      prune: true
+
+      # -- selfHeal corrects live drift from the root's desired state.
+      selfHeal: true
+
+# -- appProject configures the Platform Argo CD AppProject.
+appProject:
+  # -- name is the AppProject name.
+  name: "platform"
+
+  # -- finalizers control deletion of resources owned through the AppProject.
+  finalizers:
+    - "resources-finalizer.argocd.argoproj.io"
+
+  # -- description describes the AppProject.
+  description: "Platform Project"
+
+  # -- sourceRepos lists Git repositories permitted by the AppProject.
+  sourceRepos:
+    - "*"
+
+  # -- destinations lists deployment targets permitted by the AppProject.
+  destinations:
+    -  # -- namespace matches namespaces permitted by this destination.
+      namespace: "*"
+
+      # -- server matches cluster APIs permitted by this destination.
+      server: "*"
+
+  # -- clusterResourceWhitelist lists cluster-scoped resources permitted by the AppProject.
+  clusterResourceWhitelist:
+    -  # -- group matches permitted Kubernetes API groups.
+      group: "*"
+
+      # -- kind matches permitted cluster-scoped resource kinds.
+      kind: "*"
+
+# -- applicationSet configures generated Applications and their RollingSync order.
+applicationSet:
+  # -- name is the ApplicationSet name.
+  name: "platform"
+
+  # -- stageLabelKey labels generated Applications for RollingSync matching.
+  stageLabelKey: "platform-bootstrap-stage"
+
+  # -- applications maps Application names to complete generated configurations.
+  applications:
+    # -- gateway configures the Envoy Gateway Application.
+    gateway:
+      # -- stage assigns Gateway to its RollingSync health gate.
+      stage: "gateway"
+
+      # -- finalizers delete Gateway-owned resources with the generated Application.
+      finalizers:
+        - "resources-finalizer.argocd.argoproj.io"
+
+      # -- project is the AppProject used by Gateway.
+      project: "platform"
+
+      # -- source configures the Gateway Git and Helm source.
+      source:
+        # -- repoURL is the Gateway Git repository.
+        repoURL: "https://github.com/wallchristopher/platform.git"
+
+        # -- path is the Gateway chart path.
+        path: "platform/gateway"
+
+        # -- helm configures the Gateway Helm release.
+        helm:
+          # -- releaseName is the Gateway Helm release name.
+          releaseName: "envoy-gateway"
+
+          # -- valueFiles lists Gateway values files relative to its chart.
+          valueFiles:
+            - "values.yaml"
+
+      # -- destination configures the Gateway deployment target.
+      destination:
+        # -- server is the Gateway destination cluster API.
+        server: "https://kubernetes.default.svc"
+
+        # -- namespace is the Gateway destination namespace.
+        namespace: "envoy-gateway-system"
+
+      # -- syncPolicy configures Gateway reconciliation and retry.
+      syncPolicy:
+        # -- automated enables automated Gateway reconciliation.
+        automated:
+          # -- prune removes Gateway resources deleted from Git.
+          prune: true
+
+          # -- selfHeal corrects Gateway live drift.
+          selfHeal: true
+
+        # -- retry configures bounded Gateway sync retries.
+        retry:
+          # -- limit is the maximum Gateway retry count.
+          limit: 5
+
+          # -- backoff configures Gateway retry timing.
+          backoff:
+            # -- duration is the initial Gateway retry delay.
+            duration: "5s"
+
+            # -- factor multiplies each Gateway retry delay.
+            factor: 2
+
+            # -- maxDuration caps the Gateway retry delay.
+            maxDuration: "3m"
+
+        # -- syncOptions lists Gateway synchronization options.
+        syncOptions:
+          - "CreateNamespace=true"
+          - "ServerSideApply=true"
+
+    # -- argocd configures the self-managed Argo CD Application.
+    argocd:
+      # -- stage assigns Argo CD to its RollingSync health gate.
+      stage: "argocd"
+
+      # -- finalizers delete Argo-owned resources with the generated Application.
+      finalizers:
+        - "resources-finalizer.argocd.argoproj.io"
+
+      # -- project is the AppProject used by Argo CD.
+      project: "platform"
+
+      # -- source configures the Argo CD Git and Helm source.
+      source:
+        # -- repoURL is the Argo CD Git repository.
+        repoURL: "https://github.com/wallchristopher/platform.git"
+
+        # -- path is the Argo CD chart path.
+        path: "platform/argocd"
+
+        # -- helm configures the Argo CD Helm release.
+        helm:
+          # -- releaseName is the Argo CD Helm release name.
+          releaseName: "argocd"
+          # -- valueFiles lists Argo CD values files relative to its chart.
+          valueFiles:
+            - "values.yaml"
+            - "values/local.yaml"
+      # -- destination configures the Argo CD deployment target.
+      destination:
+        # -- server is the Argo CD destination cluster API.
+        server: "https://kubernetes.default.svc"
+        # -- namespace is the Argo CD destination namespace.
+        namespace: "argocd"
+      # -- syncPolicy configures Argo CD reconciliation and retry.
+      syncPolicy:
+        # -- automated enables automated Argo CD reconciliation.
+        automated:
+          # -- prune removes Argo CD resources deleted from Git.
+          prune: true
+          # -- selfHeal corrects Argo CD live drift.
+          selfHeal: true
+        # -- retry configures bounded Argo CD sync retries.
+        retry:
+          # -- limit is the maximum Argo CD retry count.
+          limit: 5
+          # -- backoff configures Argo CD retry timing.
+          backoff:
+            # -- duration is the initial Argo CD retry delay.
+            duration: "5s"
+            # -- factor multiplies each Argo CD retry delay.
+            factor: 2
+            # -- maxDuration caps the Argo CD retry delay.
+            maxDuration: "3m"
+        # -- syncOptions lists Argo CD synchronization options.
+        syncOptions:
+          - "CreateNamespace=true"
+          - "ServerSideApply=true"
+  # -- stages orders generated Applications by required health gate.
+  stages:
+    - "gateway"
+    - "argocd"
+  # -- template supplies the schema-required top-level ApplicationSet defaults.
+  template:
+    # -- project supplies the schema-required top-level template project.
+    project: "platform"
+    # -- destination supplies the schema-required top-level template destination.
+    destination:
+      # -- server is the top-level template destination cluster API.
+      server: "https://kubernetes.default.svc"
+      # -- namespace is the top-level template destination namespace.
+      namespace: "argocd"
+  # -- syncPolicy controls generated Application ownership and deletion.
+  syncPolicy:
+    # -- applicationsSync permits ApplicationSet create, update, and delete operations.
+    applicationsSync: "sync"
+    # -- preserveResourcesOnDeletion removes generated resources when their Application is deleted.
+    preserveResourcesOnDeletion: false

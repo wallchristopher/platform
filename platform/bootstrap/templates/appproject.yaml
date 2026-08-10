@@ -1,0 +1,20 @@
+{{- $project := .Values.appProject -}}
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ $project.name | quote }}
+  namespace: {{ include "bootstrap.namespace" . | quote }}
+  labels:
+    {{- include "bootstrap.labels" . | nindent 4 }}
+  {{- with $project.finalizers }}
+  finalizers:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  description: {{ $project.description | quote }}
+  sourceRepos:
+    {{- toYaml $project.sourceRepos | nindent 4 }}
+  destinations:
+    {{- toYaml $project.destinations | nindent 4 }}
+  clusterResourceWhitelist:
+    {{- toYaml $project.clusterResourceWhitelist | nindent 4 }}

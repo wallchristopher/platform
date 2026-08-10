@@ -1,0 +1,23 @@
+{{- $application := .Values.application -}}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $application.name | quote }}
+  namespace: {{ include "bootstrap.namespace" . | quote }}
+  labels:
+    {{- include "bootstrap.labels" . | nindent 4 }}
+spec:
+  project: {{ $application.project | quote }}
+  source:
+    repoURL: {{ $application.source.repoURL | quote }}
+    targetRevision: {{ required "sourceRevision is required" .Values.sourceRevision | quote }}
+    path: {{ $application.source.path | quote }}
+    {{- with $application.source.helm }}
+    helm:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  destination:
+    server: {{ $application.destination.server | quote }}
+    namespace: {{ $application.destination.namespace | quote }}
+  syncPolicy:
+    {{- toYaml $application.syncPolicy | nindent 4 }}

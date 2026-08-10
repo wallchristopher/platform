@@ -6,15 +6,10 @@ PROJECT_ROOT="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 readonly SCRIPT_DIR PROJECT_ROOT
 
 readonly ARGOCD_CHART_DIR="${PROJECT_ROOT}/platform/argocd"
-readonly LOCAL_DIR="${PROJECT_ROOT}/.local"
-readonly KUBECONFIG_PATH="${LOCAL_DIR}/kubeconfig"
-readonly HELM_ROOT="${LOCAL_DIR}/helm"
-readonly HELM_CACHE_DIR="${HELM_ROOT}/cache"
-readonly HELM_CONFIG_DIR="${HELM_ROOT}/config"
-readonly HELM_DATA_DIR="${HELM_ROOT}/data"
+readonly PLATFORM_BOOTSTRAP_CHART_DIR="${PROJECT_ROOT}/platform/bootstrap"
 readonly TERRAFORM_DIR="${PROJECT_ROOT}/terraform"
 
-readonly -a APPLICATIONS=(platform argocd gateway)
+readonly -a APPLICATIONS=(platform gateway argocd)
 readonly APPLICATION_WAIT_ATTEMPTS=120
 readonly APPLICATION_WAIT_INTERVAL_SECONDS=5
 readonly AWS_FLOCI_ACCOUNT_ID="000000000000"
@@ -61,27 +56,13 @@ aws_config() {
 }
 
 kubectl_config() {
-    AWS_PROFILE="${AWS_PROFILE_NAME}" \
-    AWS_REGION="${AWS_REGION_NAME}" \
-    AWS_ENDPOINT_URL="${FLOCI_ENDPOINT}" \
-        kubectl \
-        --kubeconfig "${KUBECONFIG_PATH}" \
+    kubectl \
         --context "${CONTEXT_NAME}" \
         "$@"
 }
 
 terraform_config() {
     terraform -chdir="${TERRAFORM_DIR}" "$@"
-}
-
-helm_config() {
-    HELM_CACHE_HOME="${HELM_CACHE_DIR}" \
-    HELM_CONFIG_HOME="${HELM_CONFIG_DIR}" \
-    HELM_DATA_HOME="${HELM_DATA_DIR}" \
-    AWS_PROFILE="${AWS_PROFILE_NAME}" \
-    AWS_REGION="${AWS_REGION_NAME}" \
-    AWS_ENDPOINT_URL="${FLOCI_ENDPOINT}" \
-        helm "$@"
 }
 
 compose_floci() {
@@ -117,8 +98,8 @@ verify_healthy_cluster() {
     local cluster_status
     local node_count
 
-    [[ -s "${KUBECONFIG_PATH}" ]] || \
-        die "GitOps requires the current isolated kubeconfig at ${KUBECONFIG_PATH}; run infra first"
+    kubectl_config config view --minify >/dev/null 2>&1 || \
+        die "GitOps requires kube context ${CONTEXT_NAME} in the default kubeconfig; run infra first"
 
     curl --fail --silent --show-error \
         "${FLOCI_ENDPOINT}/_localstack/health" >/dev/null || \
@@ -158,12 +139,10 @@ infrastructure_phase() {
         -auto-approve \
         -var-file=tfvars/local.tfvars
 
-    mkdir -p "${LOCAL_DIR}"
     aws_config eks update-kubeconfig \
         --name "${CLUSTER_NAME}" \
-        --alias "${CONTEXT_NAME}" \
-        --kubeconfig "${KUBECONFIG_PATH}"
-    chmod 600 "${KUBECONFIG_PATH}"
+        --alias "${CONTEXT_NAME}"
+    kubectl_config config set-context "${CONTEXT_NAME}" --namespace argocd >/dev/null
     verify_healthy_cluster
 }
 
@@ -198,34 +177,53 @@ wait_for_application() {
 gitops_phase() {
     local application
     local argocd_server
+    local platform_application
 
     verify_healthy_cluster
+
     argocd_server="$(kubectl_config --namespace argocd get deployment argocd-server \
         --ignore-not-found \
         --output name)"
     if [[ -z "${argocd_server}" ]]; then
-        mkdir -p "${HELM_CACHE_DIR}" "${HELM_CONFIG_DIR}" "${HELM_DATA_DIR}"
-
-        helm_config repo add argo https://argoproj.github.io/argo-helm --force-update
-        helm_config repo update
-        helm_config dependency build "${ARGOCD_CHART_DIR}"
-        helm_config upgrade --install argocd "${ARGOCD_CHART_DIR}" \
+        helm repo add argo https://argoproj.github.io/argo-helm --force-update
+        helm repo update
+        helm dependency build "${ARGOCD_CHART_DIR}"
+        helm upgrade --install argocd "${ARGOCD_CHART_DIR}" \
             --namespace argocd \
             --create-namespace \
             --wait \
             --timeout 10m \
-            --kubeconfig "${KUBECONFIG_PATH}" \
             --kube-context "${CONTEXT_NAME}"
     fi
 
-    kubectl_config apply --filename "${PROJECT_ROOT}/bootstrap/platform/root.yaml"
+    platform_application="$(kubectl_config --namespace argocd get application platform \
+        --ignore-not-found \
+        --output name)"
+    if [[ -z "${platform_application}" ]]; then
+        helm template platform "${PLATFORM_BOOTSTRAP_CHART_DIR}" \
+            --namespace argocd \
+            --show-only templates/application.yaml |
+            kubectl_config apply --filename -
+    fi
+
     for application in "${APPLICATIONS[@]}"; do
         wait_for_application "${application}"
     done
 }
 
 recreate_environment() {
+    local cluster_resource="floci-eks-${CLUSTER_NAME}"
+
     compose_floci down --volumes
+
+    # Memory-mode restarts can orphan EKS Docker state: https://github.com/floci-io/floci/issues/1136
+    if docker container inspect "${cluster_resource}" >/dev/null 2>&1; then
+        docker container rm --force --volumes "${cluster_resource}"
+    fi
+
+    if docker volume inspect "${cluster_resource}" >/dev/null 2>&1; then
+        docker volume rm "${cluster_resource}"
+    fi
 }
 
 main() {

@@ -185,8 +185,6 @@ gitops_phase() {
         --ignore-not-found \
         --output name)"
     if [[ -z "${argocd_server}" ]]; then
-        helm repo add argo https://argoproj.github.io/argo-helm --force-update
-        helm repo update
         helm dependency build "${ARGOCD_CHART_DIR}"
         helm upgrade --install argocd "${ARGOCD_CHART_DIR}" \
             --namespace argocd \

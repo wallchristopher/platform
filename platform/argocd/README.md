@@ -14,7 +14,7 @@ Installs ArgoCD
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://argoproj.github.io/argo-helm | argo-cd | 9.x |
+| oci://ghcr.io/argoproj/argo-helm | argo-cd | 9.x |
 
 ## Values
 

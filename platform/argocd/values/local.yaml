@@ -13,4 +13,6 @@ argo-cd:
           namespace: envoy-gateway-system
           sectionName: http
       hostnames:
-        - argocd.local
+        - argocd.platform.localhost
+        # Floci rewrites the upstream Host header to its EKS target hostname.
+        - floci-eks-platform

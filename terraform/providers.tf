@@ -13,9 +13,10 @@ provider "aws" {
   }
 
   endpoints {
-    ec2 = var.aws_endpoint_url
-    eks = var.aws_endpoint_url
-    iam = var.aws_endpoint_url
-    sts = var.aws_endpoint_url
+    ec2   = var.aws_endpoint_url
+    eks   = var.aws_endpoint_url
+    elbv2 = var.aws_endpoint_url
+    iam   = var.aws_endpoint_url
+    sts   = var.aws_endpoint_url
   }
 }

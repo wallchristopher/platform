@@ -9,6 +9,24 @@ controller:
         controllerName: gateway.envoyproxy.io/gatewayclass-controller
 
 public:
+  # -- envoyProxy configures the generated Envoy data plane.
+  envoyProxy:
+    # -- name is the namespaced EnvoyProxy referenced by the Gateway.
+    name: envoy-gateway
+
+    # -- service configures the generated Envoy Service.
+    service:
+      # -- type publishes Envoy through a fixed Kubernetes NodePort.
+      type: NodePort
+
+      # -- http configures the public HTTP Service port.
+      http:
+        # -- port is the Envoy Service port matched by the strategic merge patch.
+        port: 80
+
+        # -- nodePort is the stable port reached from the EKS network.
+        nodePort: 30080
+
   # -- gateway class configuration
   gatewayClass:
     # -- gateway class name

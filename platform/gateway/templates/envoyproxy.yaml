@@ -1,0 +1,19 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .Values.public.envoyProxy.name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: {{ .Values.public.envoyProxy.service.type }}
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - port: {{ .Values.public.envoyProxy.service.http.port }}
+                  nodePort: {{ .Values.public.envoyProxy.service.http.nodePort }}

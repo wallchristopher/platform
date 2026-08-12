@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:4567:4566"
+      - "127.0.0.1:9009:9009"
     environment:
       FLOCI_STORAGE_MODE: memory
       FLOCI_SERVICES_EKS_DOCKER_NETWORK: platform-floci

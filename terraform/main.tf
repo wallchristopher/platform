@@ -45,3 +45,37 @@ module "eks" {
   identity_providers                 = {}
   self_managed_node_groups           = {}
 }
+
+module "nlb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "10.5.0"
+
+  name               = "${var.eks_cluster_name}-ingress"
+  load_balancer_type = "network"
+  subnets            = module.vpc.private_subnets
+  vpc_id             = module.vpc.vpc_id
+
+  create_security_group            = false
+  enable_cross_zone_load_balancing = false
+  enable_deletion_protection       = false
+
+  listeners = {
+    ingress = {
+      port     = var.ingress_listener_port
+      protocol = "TCP"
+      forward = {
+        target_group_key = "envoy_gateway"
+      }
+    }
+  }
+
+  target_groups = {
+    envoy_gateway = {
+      name        = "${var.eks_cluster_name}-envoy"
+      port        = var.ingress_node_port
+      protocol    = "TCP"
+      target_type = "instance"
+      target_id   = var.ingress_target_id
+    }
+  }
+}

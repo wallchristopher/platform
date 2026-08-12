@@ -70,6 +70,39 @@ variable "environment" {
   nullable    = false
 }
 
+variable "ingress_listener_port" {
+  description = "NLB listener port for ingress traffic"
+  type        = number
+  nullable    = false
+
+  validation {
+    condition     = var.ingress_listener_port >= 1 && var.ingress_listener_port <= 65535
+    error_message = "Ingress listener port must be between 1 and 65535."
+  }
+}
+
+variable "ingress_node_port" {
+  description = "Kubernetes NodePort targeted by the NLB target group"
+  type        = number
+  nullable    = false
+
+  validation {
+    condition     = var.ingress_node_port >= 1 && var.ingress_node_port <= 65535
+    error_message = "Ingress node port must be a valid TCP port between 1 and 65535."
+  }
+}
+
+variable "ingress_target_id" {
+  description = "Target ID registered with the ingress NLB target group"
+  type        = string
+  nullable    = false
+
+  validation {
+    condition     = length(trimspace(var.ingress_target_id)) > 0
+    error_message = "Ingress target ID must not be blank."
+  }
+}
+
 variable "kubernetes_version" {
   description = "Optional Kubernetes control-plane version"
   type        = string

@@ -1,0 +1,45 @@
+# -- localCredentials configures the optional local provider Secret.
+localCredentials:
+  # -- enabled creates the local provider credential Secret.
+  enabled: false
+  # -- name is the provider credential Secret name.
+  name: floci-credentials
+  # -- accessKeyID is the non-production provider access key ID.
+  accessKeyID: ""
+  # -- secretAccessKey is the non-production provider secret access key.
+  secretAccessKey: ""
+
+# -- clusterSecretStores maps names to complete store specifications.
+clusterSecretStores:
+  # -- platform-ssm exposes the shared Parameter Store root.
+  platform-ssm:
+    conditions:
+      - namespaceSelector:
+          matchLabels:
+            wallchristopher.github.io/secret-store-access: "enabled"
+    provider:
+      aws:
+        service: ParameterStore
+        region: "us-east-1"
+        prefix: "/platform/"
+
+  # -- platform-secrets-manager exposes the shared Secrets Manager root.
+  platform-secrets-manager:
+    conditions:
+      - namespaceSelector:
+          matchLabels:
+            wallchristopher.github.io/secret-store-access: "enabled"
+    provider:
+      aws:
+        service: SecretsManager
+        region: "us-east-1"
+        prefix: "platform/"
+
+# -- external-secrets configures the maintained operator dependency.
+external-secrets:
+  crds:
+    annotations:
+      helm.sh/resource-policy: keep
+      argocd.argoproj.io/sync-options: "Prune=false,Delete=false"
+  # EKS/Floci does not need OpenShift user/project finalizer subresource RBAC.
+  openshiftFinalizers: false

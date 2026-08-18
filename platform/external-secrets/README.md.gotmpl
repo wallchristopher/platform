@@ -1,0 +1,45 @@
+{{ template "chart.header" . }}
+{{ template "chart.description" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+## What this chart manages
+
+This wrapper installs [External Secrets Operator](https://external-secrets.io/) with
+its controller, webhook, certificate controller, RBAC, and CRDs. Platform adds the
+shared `ClusterSecretStore` resources and an optional credential Secret for local
+Floci.
+
+## Use the shared stores
+
+A namespace may reference the shared stores only when it has this label:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: example
+  labels:
+    wallchristopher.github.io/secret-store-access: "enabled"
+```
+
+| Store | AWS service | Configured prefix |
+| --- | --- | --- |
+| `platform-ssm` | Systems Manager Parameter Store | `/platform/` |
+| `platform-secrets-manager` | Secrets Manager | `platform/` |
+
+
+## CRD lifecycle
+
+The chart marks the upstream CRDs with `helm.sh/resource-policy: keep` and the Argo CD
+`Prune=false,Delete=false` sync options. Removing the chart or Application leaves the
+CRDs installed. Do not reconcile them with `Replace=true`. Before deleting a CRD
+manually, verify that no External Secrets resources or finalizers remain.
+
+<!-- markdownlint-disable MD034 -->
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+<!-- markdownlint-enable MD034 -->

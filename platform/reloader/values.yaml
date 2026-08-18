@@ -1,0 +1,4 @@
+# -- reloader configures opt-in Secret and ConfigMap rollouts in selected namespaces.
+reloader:
+  reloader:
+    namespaceSelector: platform-reloader=enabled

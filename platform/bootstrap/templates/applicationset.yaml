@@ -20,8 +20,6 @@ spec:
             labels:
               {{- include "bootstrap.labels" $ | nindent 14 }}
               {{ $applicationSet.stageLabelKey | quote }}: {{ required "application stage is required" $child.stage | quote }}
-            finalizers:
-              {{- toYaml $child.finalizers | nindent 14 }}
           spec:
             project: {{ $child.project | quote }}
             source:

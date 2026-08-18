@@ -98,10 +98,6 @@ applicationSet:
       # -- stage assigns Gateway to its RollingSync health gate.
       stage: "gateway"
 
-      # -- finalizers delete Gateway-owned resources with the generated Application.
-      finalizers:
-        - "resources-finalizer.argocd.argoproj.io"
-
       # -- project is the AppProject used by Gateway.
       project: "platform"
 
@@ -166,10 +162,6 @@ applicationSet:
       # -- stage assigns Argo CD to its RollingSync health gate.
       stage: "argocd"
 
-      # -- finalizers delete Argo-owned resources with the generated Application.
-      finalizers:
-        - "resources-finalizer.argocd.argoproj.io"
-
       # -- project is the AppProject used by Argo CD.
       project: "platform"
 
@@ -219,10 +211,142 @@ applicationSet:
         syncOptions:
           - "CreateNamespace=true"
           - "ServerSideApply=true"
+
+    # -- external-secrets configures the External Secrets Operator Application.
+    external-secrets:
+      # -- stage assigns External Secrets to its RollingSync health gate.
+      stage: "platform-operators"
+
+      # -- project is the AppProject used by External Secrets.
+      project: "platform"
+
+      # -- source configures the External Secrets Git and Helm source.
+      source:
+        # -- repoURL is the External Secrets Git repository.
+        repoURL: "https://github.com/wallchristopher/platform.git"
+
+        # -- path is the External Secrets chart path.
+        path: "platform/external-secrets"
+
+        # -- helm configures the External Secrets Helm release.
+        helm:
+          # -- releaseName is the External Secrets Helm release name.
+          releaseName: "external-secrets"
+
+          # -- valueFiles lists External Secrets values files relative to its chart.
+          valueFiles:
+            - "values.yaml"
+            - "values/local.yaml"
+
+      # -- destination configures the External Secrets deployment target.
+      destination:
+        # -- server is the External Secrets destination cluster API.
+        server: "https://kubernetes.default.svc"
+
+        # -- namespace is the External Secrets destination namespace.
+        namespace: "external-secrets"
+
+      # -- syncPolicy configures External Secrets reconciliation and retry.
+      syncPolicy:
+        # -- automated enables automated External Secrets reconciliation.
+        automated:
+          # -- prune removes External Secrets resources deleted from Git.
+          prune: true
+
+          # -- selfHeal corrects External Secrets live drift.
+          selfHeal: true
+
+        # -- retry configures bounded External Secrets sync retries.
+        retry:
+          # -- limit is the maximum External Secrets retry count.
+          limit: 5
+
+          # -- backoff configures External Secrets retry timing.
+          backoff:
+            # -- duration is the initial External Secrets retry delay.
+            duration: "5s"
+
+            # -- factor multiplies each External Secrets retry delay.
+            factor: 2
+
+            # -- maxDuration caps the External Secrets retry delay.
+            maxDuration: "3m"
+
+        # -- syncOptions lists External Secrets synchronization options.
+        syncOptions:
+          - "CreateNamespace=true"
+          - "ServerSideApply=true"
+
+    # -- reloader configures the Stakater Reloader Application.
+    reloader:
+      # -- stage assigns Reloader to its RollingSync health gate.
+      stage: "platform-operators"
+
+      # -- project is the AppProject used by Reloader.
+      project: "platform"
+
+      # -- source configures the Reloader Git and Helm source.
+      source:
+        # -- repoURL is the Reloader Git repository.
+        repoURL: "https://github.com/wallchristopher/platform.git"
+
+        # -- path is the Reloader chart path.
+        path: "platform/reloader"
+
+        # -- helm configures the Reloader Helm release.
+        helm:
+          # -- releaseName is the Reloader Helm release name.
+          releaseName: "reloader"
+
+          # -- valueFiles lists Reloader values files relative to its chart.
+          valueFiles:
+            - "values.yaml"
+
+      # -- destination configures the Reloader deployment target.
+      destination:
+        # -- server is the Reloader destination cluster API.
+        server: "https://kubernetes.default.svc"
+
+        # -- namespace is the Reloader destination namespace.
+        namespace: "reloader"
+
+      # -- syncPolicy configures Reloader reconciliation and retry.
+      syncPolicy:
+        # -- automated enables automated Reloader reconciliation.
+        automated:
+          # -- prune removes Reloader resources deleted from Git.
+          prune: true
+
+          # -- selfHeal corrects Reloader live drift.
+          selfHeal: true
+
+        # -- retry configures bounded Reloader sync retries.
+        retry:
+          # -- limit is the maximum Reloader retry count.
+          limit: 5
+
+          # -- backoff configures Reloader retry timing.
+          backoff:
+            # -- duration is the initial Reloader retry delay.
+            duration: "5s"
+
+            # -- factor multiplies each Reloader retry delay.
+            factor: 2
+
+            # -- maxDuration caps the Reloader retry delay.
+            maxDuration: "3m"
+
+        # -- syncOptions lists Reloader synchronization options.
+        syncOptions:
+          - "CreateNamespace=true"
+          - "ServerSideApply=true"
+
   # -- stages orders generated Applications by required health gate.
   stages:
     - "gateway"
     - "argocd"
+    - "platform-operators"
+
   # -- template supplies the schema-required top-level ApplicationSet defaults.
   template:
     # -- project supplies the schema-required top-level template project.
@@ -233,6 +357,7 @@ applicationSet:
       server: "https://kubernetes.default.svc"
       # -- namespace is the top-level template destination namespace.
       namespace: "argocd"
+
   # -- syncPolicy controls generated Application ownership and deletion.
   syncPolicy:
     # -- applicationsSync permits ApplicationSet create, update, and delete operations.

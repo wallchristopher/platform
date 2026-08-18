@@ -9,7 +9,7 @@ readonly ARGOCD_CHART_DIR="${PROJECT_ROOT}/platform/argocd"
 readonly PLATFORM_BOOTSTRAP_CHART_DIR="${PROJECT_ROOT}/platform/bootstrap"
 readonly TERRAFORM_DIR="${PROJECT_ROOT}/terraform"
 
-readonly -a APPLICATIONS=(platform gateway argocd)
+readonly -a APPLICATIONS=(platform gateway argocd external-secrets reloader)
 readonly APPLICATION_WAIT_ATTEMPTS=120
 readonly APPLICATION_WAIT_INTERVAL_SECONDS=5
 readonly AWS_FLOCI_ACCOUNT_ID="000000000000"

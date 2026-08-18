@@ -1,0 +1,42 @@
+# Local Floci uses emulator credentials and controller endpoint overrides.
+localCredentials:
+  enabled: true
+  name: floci-credentials
+  accessKeyID: floci
+  secretAccessKey: floci
+
+clusterSecretStores:
+  platform-ssm:
+    provider:
+      aws:
+        auth:
+          secretRef:
+            accessKeyIDSecretRef:
+              name: floci-credentials
+              key: access-key-id
+              namespace: external-secrets
+            secretAccessKeySecretRef:
+              name: floci-credentials
+              key: secret-access-key
+              namespace: external-secrets
+
+  platform-secrets-manager:
+    provider:
+      aws:
+        auth:
+          secretRef:
+            accessKeyIDSecretRef:
+              name: floci-credentials
+              key: access-key-id
+              namespace: external-secrets
+            secretAccessKeySecretRef:
+              name: floci-credentials
+              key: secret-access-key
+              namespace: external-secrets
+
+external-secrets:
+  extraEnv:
+    - name: AWS_SSM_ENDPOINT
+      value: http://floci:4566
+    - name: AWS_SECRETSMANAGER_ENDPOINT
+      value: http://floci:4566

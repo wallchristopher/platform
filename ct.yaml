@@ -2,6 +2,8 @@ chart-dirs:
   - platform
 chart-repos:
   - argo-cd=https://argoproj.github.io/argo-helm
+  - external-secrets=https://charts.external-secrets.io
+  - reloader=https://stakater.github.io/stakater-charts
 check-version-increment: false
 target-branch: main
 validate-maintainers: false

@@ -1,0 +1,39 @@
+{{ template "chart.header" . }}
+{{ template "chart.description" . }}
+
+{{ template "chart.versionBadge" . }}{{ template "chart.typeBadge" . }}{{ template "chart.appVersionBadge" . }}
+
+## Opt in
+
+This wrapper installs [Reloader](https://github.com/stakater/Reloader) and limits it
+to namespaces labeled `platform-reloader=enabled`. It does not annotate application
+workloads.
+
+Both opt-in steps are required. First, label the namespace:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: example
+  labels:
+    platform-reloader: "enabled"
+```
+
+Then add the automatic reload annotation to the workload metadata:
+
+```yaml
+metadata:
+  annotations:
+    reloader.stakater.com/auto: "true"
+```
+
+Reloader rolls the workload when a referenced Secret or ConfigMap changes.
+
+<!-- markdownlint-disable MD034 -->
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+<!-- markdownlint-enable MD034 -->

@@ -14,5 +14,3 @@ argo-cd:
           sectionName: http
       hostnames:
         - argocd.platform.localhost
-        # Floci rewrites the upstream Host header to its EKS target hostname.
-        - floci-eks-platform

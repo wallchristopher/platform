@@ -37,5 +37,13 @@ Installs Envoy Gateway
 | public.gatewayClass | object | `{"description":"Public gateway class for the platform","name":"public"}` | gateway class configuration |
 | public.gatewayClass.description | string | `"Public gateway class for the platform"` | gateway class description |
 | public.gatewayClass.name | string | `"public"` | gateway class name |
+| public.readiness | object | `{"listenerName":"http","path":"/ready","service":{"port":19003,"portName":"readiness","selectorLabels":{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"envoy-gateway","app.kubernetes.io/name":"envoy"},"targetPort":"readiness"}}` | readiness configures the gateway-owned NLB health endpoint. |
+| public.readiness.listenerName | string | `"http"` | listenerName is the Gateway listener that accepts readiness requests. |
+| public.readiness.path | string | `"/ready"` | path is the exact HTTPRoute path used by the NLB health check. |
+| public.readiness.service | object | `{"port":19003,"portName":"readiness","selectorLabels":{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"envoy-gateway","app.kubernetes.io/name":"envoy"},"targetPort":"readiness"}` | service exposes the Envoy proxy readiness port inside the cluster. |
+| public.readiness.service.port | int | `19003` | port is the Service port forwarded to Envoy readiness. |
+| public.readiness.service.portName | string | `"readiness"` | portName is the Service port name. |
+| public.readiness.service.selectorLabels | object | `{"app.kubernetes.io/component":"proxy","app.kubernetes.io/managed-by":"envoy-gateway","app.kubernetes.io/name":"envoy"}` | selectorLabels identify Envoy Gateway proxy pods. |
+| public.readiness.service.targetPort | string | `"readiness"` | targetPort is the named Envoy container readiness port. |
 
 <!-- markdownlint-enable MD034 -->

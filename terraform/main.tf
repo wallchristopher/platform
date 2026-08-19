@@ -76,6 +76,56 @@ module "nlb" {
       protocol    = "TCP"
       target_type = "instance"
       target_id   = var.ingress_target_id
+
+      health_check = {
+        healthy_threshold   = 5
+        matcher             = "200"
+        path                = "/ready"
+        protocol            = "HTTP"
+        unhealthy_threshold = 2
+      }
     }
+  }
+}
+
+resource "terraform_data" "floci_nlb_host_header" {
+  count = var.enable_floci_nlb_host_preservation ? 1 : 0
+
+  triggers_replace = [module.nlb.arn]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -euo pipefail
+
+      aws --no-cli-pager \
+        --profile "$AWS_PROFILE" \
+        --region "$AWS_REGION" \
+        --endpoint-url "$AWS_ENDPOINT_URL" \
+        elbv2 modify-load-balancer-attributes \
+        --load-balancer-arn "$LOAD_BALANCER_ARN" \
+        --attributes "Key=routing.http.preserve_host_header.enabled,Value=true" \
+        --output json >/dev/null
+
+      actual="$(
+        aws --no-cli-pager \
+          --profile "$AWS_PROFILE" \
+          --region "$AWS_REGION" \
+          --endpoint-url "$AWS_ENDPOINT_URL" \
+          elbv2 describe-load-balancer-attributes \
+          --load-balancer-arn "$LOAD_BALANCER_ARN" \
+          --query "Attributes[?Key=='routing.http.preserve_host_header.enabled'].Value | [0]" \
+          --output text
+      )"
+      [[ "$actual" == "true" ]]
+    EOT
+
+    environment = {
+      AWS_ENDPOINT_URL  = coalesce(var.aws_endpoint_url, "")
+      AWS_PROFILE       = coalesce(var.aws_profile, "")
+      AWS_REGION        = var.aws_region
+      LOAD_BALANCER_ARN = module.nlb.arn
+    }
+
+    interpreter = ["/usr/bin/env", "bash", "-c"]
   }
 }

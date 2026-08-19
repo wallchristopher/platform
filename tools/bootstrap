@@ -16,6 +16,9 @@ readonly AWS_FLOCI_ACCOUNT_ID="000000000000"
 readonly AWS_PROFILE_NAME="floci"
 readonly AWS_REGION_NAME="us-east-1"
 readonly CLUSTER_NAME="platform"
+readonly EKS_CHILD_NAME="floci-eks-${CLUSTER_NAME}"
+readonly KUBERNETES_API_WAIT_ATTEMPTS=60
+readonly KUBERNETES_API_WAIT_INTERVAL_SECONDS=2
 readonly CONTEXT_NAME="floci-platform"
 readonly FLOCI_ENDPOINT="http://127.0.0.1:4567"
 readonly FLOCI_WAIT_ATTEMPTS=60
@@ -94,7 +97,33 @@ verify_aws_account() {
         die "expected Floci AWS account ${AWS_FLOCI_ACCOUNT_ID}, received ${account_id}"
 }
 
+# Floci can retain an ACTIVE EKS record while its Docker child is stopped or uses restart policy "no".
+recover_existing_eks_child() {
+    local child_name
+    local running
+
+    child_name="$(docker container ls \
+        --all \
+        --filter "name=^${EKS_CHILD_NAME}$" \
+        --format '{{.Names}}')"
+    if [[ -z "${child_name}" ]]; then
+        return
+    fi
+    [[ "${child_name}" == "${EKS_CHILD_NAME}" ]] || \
+        die "unexpected EKS child match for ${EKS_CHILD_NAME}"
+
+    docker container update --restart unless-stopped "${EKS_CHILD_NAME}" >/dev/null
+    running="$(docker container inspect \
+        --format '{{.State.Running}}' \
+        "${EKS_CHILD_NAME}")"
+
+    if [[ "${running}" != "true" ]]; then
+        docker container start "${EKS_CHILD_NAME}" >/dev/null
+    fi
+}
+
 verify_healthy_cluster() {
+    local attempt
     local cluster_status
     local node_count
 
@@ -113,6 +142,16 @@ verify_healthy_cluster() {
     [[ "${cluster_status}" == "ACTIVE" ]] || \
         die "expected EKS cluster ACTIVE, received ${cluster_status}"
 
+    for ((attempt = 1; attempt <= KUBERNETES_API_WAIT_ATTEMPTS; attempt++)); do
+        if kubectl_config --request-timeout=2s get --raw=/readyz >/dev/null 2>&1; then
+            break
+        fi
+        sleep "${KUBERNETES_API_WAIT_INTERVAL_SECONDS}"
+    done
+    if ((attempt > KUBERNETES_API_WAIT_ATTEMPTS)); then
+        die "Kubernetes API did not become ready for ${CONTEXT_NAME}"
+    fi
+
     kubectl_config wait --for=condition=Ready nodes --all --timeout=5m
     node_count="$(kubectl_config get nodes --no-headers | wc -l)"
     [[ "${node_count}" -eq 1 ]] || \
@@ -123,6 +162,7 @@ infrastructure_phase() {
     compose_floci up --detach floci
     wait_for_floci
     verify_aws_account
+    recover_existing_eks_child
 
     if ! aws_config s3api head-bucket --bucket "${STATE_BUCKET}" >/dev/null 2>&1; then
         aws_config s3api create-bucket --bucket "${STATE_BUCKET}" >/dev/null
@@ -138,6 +178,10 @@ infrastructure_phase() {
         -input=false \
         -auto-approve \
         -var-file=tfvars/local.tfvars
+
+    docker container inspect "${EKS_CHILD_NAME}" >/dev/null 2>&1 || \
+        die "expected Terraform to create EKS child ${EKS_CHILD_NAME}; run just local-reset"
+    recover_existing_eks_child
 
     aws_config eks update-kubeconfig \
         --name "${CLUSTER_NAME}" \
@@ -210,18 +254,15 @@ gitops_phase() {
 }
 
 recreate_environment() {
-    local cluster_resource="floci-eks-${CLUSTER_NAME}"
+    if docker container inspect "${EKS_CHILD_NAME}" >/dev/null 2>&1; then
+        docker container rm --force --volumes "${EKS_CHILD_NAME}"
+    fi
+
+    if docker volume inspect "${EKS_CHILD_NAME}" >/dev/null 2>&1; then
+        docker volume rm "${EKS_CHILD_NAME}"
+    fi
 
     compose_floci down --volumes
-
-    # Memory-mode restarts can orphan EKS Docker state: https://github.com/floci-io/floci/issues/1136
-    if docker container inspect "${cluster_resource}" >/dev/null 2>&1; then
-        docker container rm --force --volumes "${cluster_resource}"
-    fi
-
-    if docker volume inspect "${cluster_resource}" >/dev/null 2>&1; then
-        docker volume rm "${cluster_resource}"
-    fi
 }
 
 main() {

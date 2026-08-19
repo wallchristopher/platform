@@ -132,3 +132,10 @@ variable "vpc_cidr_block" {
   type        = string
   nullable    = false
 }
+
+variable "enable_floci_nlb_host_preservation" {
+  description = "Whether Terraform enables Floci's local-only NLB Host-preservation compatibility attribute"
+  type        = bool
+  default     = false
+  nullable    = false
+}

@@ -2,19 +2,24 @@ name: platform-floci
 
 services:
   floci:
-    image: floci/floci:latest
+    image: floci/floci:1.7.0
     restart: unless-stopped
     ports:
       - "127.0.0.1:4567:4566"
       - "127.0.0.1:9009:9009"
     environment:
-      FLOCI_STORAGE_MODE: memory
       FLOCI_SERVICES_EKS_DOCKER_NETWORK: platform-floci
-      FLOCI_SERVICES_EKS_KEEP_RUNNING_ON_SHUTDOWN: "false"
+      FLOCI_SERVICES_EKS_KEEP_RUNNING_ON_SHUTDOWN: "true"
+      FLOCI_STORAGE_MODE: hybrid
+      FLOCI_STORAGE_PERSISTENT_PATH: /app/data
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - floci-data:/app/data
     networks:
       - floci
+
+volumes:
+  floci-data: {}
 
 networks:
   floci:

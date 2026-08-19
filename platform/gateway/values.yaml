@@ -58,3 +58,28 @@ public:
               kind: HTTPRoute
           namespaces:
             from: All
+
+  # -- readiness configures the gateway-owned NLB health endpoint.
+  readiness:
+    # -- listenerName is the Gateway listener that accepts readiness requests.
+    listenerName: http
+
+    # -- path is the exact HTTPRoute path used by the NLB health check.
+    path: /ready
+
+    # -- service exposes the Envoy proxy readiness port inside the cluster.
+    service:
+      # -- portName is the Service port name.
+      portName: readiness
+
+      # -- port is the Service port forwarded to Envoy readiness.
+      port: 19003
+
+      # -- targetPort is the named Envoy container readiness port.
+      targetPort: readiness
+
+      # -- selectorLabels identify Envoy Gateway proxy pods.
+      selectorLabels:
+        app.kubernetes.io/component: proxy
+        app.kubernetes.io/managed-by: envoy-gateway
+        app.kubernetes.io/name: envoy

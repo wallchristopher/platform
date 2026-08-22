@@ -22,5 +22,5 @@ lint-all: helm-dependencies
 local-bootstrap:
     tools/bootstrap
 
-local-reset:
+local-recreate:
     tools/bootstrap recreate

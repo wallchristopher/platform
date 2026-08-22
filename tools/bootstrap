@@ -97,31 +97,6 @@ verify_aws_account() {
         die "expected Floci AWS account ${AWS_FLOCI_ACCOUNT_ID}, received ${account_id}"
 }
 
-# Floci can retain an ACTIVE EKS record while its Docker child is stopped or uses restart policy "no".
-recover_existing_eks_child() {
-    local child_name
-    local running
-
-    child_name="$(docker container ls \
-        --all \
-        --filter "name=^${EKS_CHILD_NAME}$" \
-        --format '{{.Names}}')"
-    if [[ -z "${child_name}" ]]; then
-        return
-    fi
-    [[ "${child_name}" == "${EKS_CHILD_NAME}" ]] || \
-        die "unexpected EKS child match for ${EKS_CHILD_NAME}"
-
-    docker container update --restart unless-stopped "${EKS_CHILD_NAME}" >/dev/null
-    running="$(docker container inspect \
-        --format '{{.State.Running}}' \
-        "${EKS_CHILD_NAME}")"
-
-    if [[ "${running}" != "true" ]]; then
-        docker container start "${EKS_CHILD_NAME}" >/dev/null
-    fi
-}
-
 verify_healthy_cluster() {
     local attempt
     local cluster_status
@@ -140,7 +115,7 @@ verify_healthy_cluster() {
         --query cluster.status \
         --output text)"
     [[ "${cluster_status}" == "ACTIVE" ]] || \
-        die "expected EKS cluster ACTIVE, received ${cluster_status}"
+        die "expected EKS cluster ACTIVE, received ${cluster_status}; run just local-recreate"
 
     for ((attempt = 1; attempt <= KUBERNETES_API_WAIT_ATTEMPTS; attempt++)); do
         if kubectl_config --request-timeout=2s get --raw=/readyz >/dev/null 2>&1; then
@@ -149,20 +124,30 @@ verify_healthy_cluster() {
         sleep "${KUBERNETES_API_WAIT_INTERVAL_SECONDS}"
     done
     if ((attempt > KUBERNETES_API_WAIT_ATTEMPTS)); then
-        die "Kubernetes API did not become ready for ${CONTEXT_NAME}"
+        die "Kubernetes API did not become ready for ${CONTEXT_NAME}; run just local-recreate"
     fi
 
-    kubectl_config wait --for=condition=Ready nodes --all --timeout=5m
+    kubectl_config wait --for=condition=Ready nodes --all --timeout=5m || \
+        die "Kubernetes nodes did not become Ready; run just local-recreate"
     node_count="$(kubectl_config get nodes --no-headers | wc -l)"
     [[ "${node_count}" -eq 1 ]] || \
-        die "expected exactly one Kubernetes node, received ${node_count}"
+        die "expected exactly one Kubernetes node, received ${node_count}; run just local-recreate"
 }
 
 infrastructure_phase() {
+    local child_status
+
     compose_floci up --detach floci
     wait_for_floci
     verify_aws_account
-    recover_existing_eks_child
+
+    if docker container inspect "${EKS_CHILD_NAME}" >/dev/null 2>&1; then
+        child_status="$(docker container inspect \
+            --format '{{.State.Status}}' \
+            "${EKS_CHILD_NAME}")"
+        [[ "${child_status}" == "running" ]] || \
+            die "existing EKS child ${EKS_CHILD_NAME} has status ${child_status}; run just local-recreate"
+    fi
 
     if ! aws_config s3api head-bucket --bucket "${STATE_BUCKET}" >/dev/null 2>&1; then
         aws_config s3api create-bucket --bucket "${STATE_BUCKET}" >/dev/null
@@ -180,8 +165,7 @@ infrastructure_phase() {
         -var-file=tfvars/local.tfvars
 
     docker container inspect "${EKS_CHILD_NAME}" >/dev/null 2>&1 || \
-        die "expected Terraform to create EKS child ${EKS_CHILD_NAME}; run just local-reset"
-    recover_existing_eks_child
+        die "expected Terraform to create EKS child ${EKS_CHILD_NAME}; run just local-recreate"
 
     aws_config eks update-kubeconfig \
         --name "${CLUSTER_NAME}" \

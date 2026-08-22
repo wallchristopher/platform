@@ -8,6 +8,7 @@ services:
       - "127.0.0.1:4567:4566"
       - "127.0.0.1:9009:9009"
     environment:
+      FLOCI_SERVICES_EKS_DEFAULT_IMAGE: "rancher/k3s:v1.34.2-k3s1" # Instead of floci's 'latest' tag
       FLOCI_SERVICES_EKS_DOCKER_NETWORK: platform-floci
       FLOCI_SERVICES_EKS_KEEP_RUNNING_ON_SHUTDOWN: "true"
       FLOCI_STORAGE_MODE: hybrid
